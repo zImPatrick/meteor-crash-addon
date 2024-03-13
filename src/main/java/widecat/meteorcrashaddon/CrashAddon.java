@@ -22,6 +22,7 @@ public class CrashAddon extends MeteorAddon {
 
         Modules.get().add(new AACCrash());
         Modules.get().add(new BookCrash());
+        Modules.get().add(new CompletionCrash());
         Modules.get().add(new ContainerCrash());
         Modules.get().add(new CraftingCrash());
         Modules.get().add(new CreativeCrash());
